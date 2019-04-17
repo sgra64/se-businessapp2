@@ -8,9 +8,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class Application {
 
 	public static void main( String[] args ) {
-		System.out.println( "Hello SpringApplication!" );
+		System.err.println( "\nHello SpringApplication!\n" );
 		SpringApplication.run( Application.class, args );
-		System.out.println( "Bye, SpringApplication!" );
+		System.err.println( "\nBye, SpringApplication!\n" );
 	}
 
 }
