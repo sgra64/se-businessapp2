@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class Application {
 
 	public static void main( String[] args ) {
-		System.err.println( "\nHello SpringApplication!\n" );
+		System.err.println( "\nHello, latest version of SpringApplication!\n" );
 		SpringApplication.run( Application.class, args );
 		System.err.println( "\nBye, SpringApplication!\n" );
 	}
