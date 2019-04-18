@@ -65,8 +65,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 
 	@Override
 	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.getClass().getSimpleName();
 	}
 
 

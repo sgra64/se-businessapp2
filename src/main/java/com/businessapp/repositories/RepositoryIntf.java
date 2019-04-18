@@ -48,7 +48,7 @@ public interface RepositoryIntf<E> extends ManagedComponentIntf {
 	 * @insert if true, entity is inserted if no entity with matching id exists.
 	 * @return reference to updated entity.
 	 */
-	public E update( E c, boolean insert );
+	public E update( E e, boolean insert );
 
 
 	/**

@@ -53,7 +53,7 @@ public interface CustomerRepositoryIntf extends RepositoryIntf<Customer> {
 	 * @return reference to updated entity.
 	 */
 	@Override
-	public Customer update( Customer c, boolean insert );
+	public Customer update( Customer e, boolean insert );
 
 
 	/**

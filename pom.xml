@@ -17,9 +17,7 @@
 	<description>Software Engineering 2 project with Spring Boot</description>
 
 	<properties>
-		<java.version>1.8</java.version>
-		<!-- added version definitions -->
-		<javafx.version>2.2</javafx.version>
+		<!-- java.version>12</java.version -->
 	</properties>
 
 	<dependencies>
@@ -33,6 +31,27 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- include open JavaFX openjfx dependency for Java -->
+		<!-- https://stackoverflow.com/questions/52653836/maven-shade-javafx-runtime-components-are-missing -->
+		<dependency>
+		    <groupId>org.openjfx</groupId>
+		    <artifactId>javafx-fxml</artifactId>
+		    <version>12</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.openjfx/javafx-fxml -->
+
+		<!-- dependency>
+		        <groupId>org.openjfx</groupId>
+		        <artifactId>javafx-controls</artifactId>
+		        <version>12</version>
+		    </dependency>
+		    <dependency>
+		        <groupId>org.openjfx</groupId>
+		        <artifactId>javafx-graphics </artifactId>
+		        <version>12</version>
+		        <classifier>win</classifier>
+		    </dependency -->
 	</dependencies>
 
 	<build>
