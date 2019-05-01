@@ -1,11 +1,13 @@
 package com.businessapp.repositories;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import com.businessapp.logic.ManagedComponentIntf;
 import com.businessapp.model.Article;
 import com.businessapp.model.Customer;
+import com.businessapp.model.Note;
 import com.businessapp.model.Customer.CustomerStatus;
 
 
@@ -17,24 +19,59 @@ import com.businessapp.model.Customer.CustomerStatus;
  *
  */
 public class RepositoryBuilder implements ManagedComponentIntf {
-	private static RepositoryBuilder _singleton = null;
+	private static RepositoryBuilder _singleton = getInstance();
 
-	public static final String Customer = "Customer";
-	public static final String Article = "Article";
+	public static final String Customer	= "Customer";
+	public static final String Article	= "Article";
 
-	private final CustomerRepositoryIntf customerRepository;
-	private final ArticleRepositoryIntf articleRepository;
+	/*
+	 * Repository configuration.
+	 */
+	private final HashMap<String,RepositoryConfig> _repoMap;
+	private final RepositoryConfig[] _repoArray;
+
+	@FunctionalInterface
+	static interface BuildFixtureFunctionalIntf {
+		void buildFixture( @SuppressWarnings("rawtypes") List list );
+	}
+
+	private class RepositoryConfig {
+		private final String name;
+		private final BuildFixtureFunctionalIntf buildFixture;
+		private RepositoryIntf<?> repository;
+
+		private RepositoryConfig( String name, BuildFixtureFunctionalIntf buildFixture ) {
+			this.name = name;
+			this.buildFixture = buildFixture;
+			this.repository = null;
+			_repoMap.put( name, this );
+		}
+
+		void inject( RepositoryIntf<?> repository ) {
+			this.repository = repository;
+		}
+	}
+
 
 	/**
-	 * Private constructor.
+	 * Private constructor as part of singleton pattern.
 	 */
 	private RepositoryBuilder() {
-		List<Customer> customerList = new ArrayList<Customer>();
-		this.customerRepository = new CustomerRepositoryImpl( customerList );
 
-		List<Article> articleList = new ArrayList<Article>();
-		this.articleRepository = new ArticleRepositoryImpl( articleList );
+		 _repoMap = new HashMap<String,RepositoryConfig>();
+
+		 _repoArray = new RepositoryConfig[] {
+			new RepositoryConfig(
+				Customer,
+				this::buildCustomerFixture
+			),
+			new RepositoryConfig(
+				Article,
+				this::buildArticleFixture
+			),
+		};
 	}
+
 
 	/**
 	 * Public access method according to the Singleton pattern.
@@ -51,16 +88,44 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 
 	@Override
 	public void start() {
-		customerRepository.start();
-		buildCustomerFixture( customerRepository.findAll() );
-		articleRepository.start();
-		buildArticleFixture( articleRepository.findAll() );
+
+		for( RepositoryConfig repoConfig : _repoArray ) {
+
+			switch( repoConfig.name ) {
+
+			case Customer:
+				configure( repoConfig, new CustomerRepositoryImpl( new ArrayList<Customer>() ) );
+				break;
+
+			case Article:
+				configure( repoConfig, new ArticleRepositoryImpl( new ArrayList<Article>() ) );
+				break;
+			}
+		}
 	}
+
+	private void configure( RepositoryConfig repoConfig, RepositoryIntf<?> repository ) {
+
+		repoConfig.inject( repository );
+
+		repoConfig.repository.findAll().clear();
+
+		if( repoConfig.repository.findAll().size() <= 0 ) {
+
+			repoConfig.buildFixture.buildFixture( repoConfig.repository.findAll() );
+		}
+
+		repoConfig.repository.start();
+	}
+
 
 	@Override
 	public void stop() {
-		articleRepository.stop();
-		customerRepository.stop();
+		for( RepositoryConfig repoConfig : _repoArray ) {
+			if( repoConfig.repository != null ) {
+				repoConfig.repository.stop();
+			}
+		}
 	}
 
 	@Override
@@ -69,19 +134,26 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	}
 
 
-	public CustomerRepositoryIntf getCustomerRepository() {
-		return customerRepository;
+	@SuppressWarnings("unchecked")
+	public RepositoryIntf<Customer> getCustomerRepository() {
+		return (RepositoryIntf<Customer>)_repoMap.get( Customer ).repository;
 	}
 
-	public ArticleRepositoryIntf getArticleRepository() {
-		return articleRepository;
+	@SuppressWarnings("unchecked")
+	public RepositoryIntf<Article> getArticleRepository() {
+		return (RepositoryIntf<Article>)_repoMap.get( Article ).repository;
 	}
+
+
+	/*
+	 * Private methods.
+	 */
 
 	/**
 	 * Method to create a set of Customer entities.
 	 * @param list container into which entities are inserted.
 	 */
-	public List<Customer> buildCustomerFixture( List<Customer> list ) {
+	private void buildCustomerFixture( List<Customer> list ) {
 		Customer c = new Customer( "Jens Baumann" );
 		c.getContacts().add( "eme@yahoo.com" );
 		c.getContacts().add( "meyer244@gmail.com" );
@@ -111,8 +183,6 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 		c = new Customer( "Michael Brown" );
 		c.getContacts().add( "michael.brown@example.com" );
 		list.add( c );
-
-		return list;
 	}
 
 
@@ -120,7 +190,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 * Method to create a set of Article entities.
 	 * @param list container into which entities are inserted.
 	 */
-	public List<Article> buildArticleFixture( List<Article> list ) {
+	private void buildArticleFixture( List<Article> list ) {
 		list.add( new Article( "Canon Objektiv EF 50mm f/1.2L USM", "1.549,00 EUR" ) );
 		list.add( new Article( "Canon Objektiv EF 50mm f/1.4 USM", "449,00 EUR" ) );
 		
@@ -167,8 +237,6 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 		list.add( new Article( "Canon Objektiv EF 70-200mm f/4L USM", "689,00 EUR" ) );
 		list.add( new Article( "Canon Objektiv EF 70-200mm f/2.8L USM", "1.579,00 EUR" ) );
 		list.add( new Article( "Canon Objektiv EF 200-400mm f/4L IS USM + Extender 1.4x", "11.699,00 EUR" ) );
-
-		return list;
 	}
 
 }

@@ -22,6 +22,10 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 	private final List<E> list;
 
 
+	/**
+	 * Constructor.
+	 * @param list list<E> that is associated with the repository.
+	 */
 	GenericMemRepositoryImpl( List<E> list ) {
 		this.list = list;
 	}
@@ -115,7 +119,7 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 
 		} else {
 			if( insert ) {
-				log.info( "==> created(" + entity.getId() + ")" );
+				log.info( "==> inserted(" + entity.getId() + ")" );
 				list.add( entity );
 			}
 		}
@@ -142,10 +146,10 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 	@Override
 	public void delete( List<String> ids ) {
 		for( String id : ids ) {
-			E e = findById( list, id );
-			if( e != null ) {
-				list.remove( e );
-				log.info( "==> deleted(" + e.getId() + ")" );
+			E entity = findById( list, id );
+			if( entity != null ) {
+				list.remove( entity );
+				log.info( "==> deleted(" + entity.getId() + ")" );
 			}
 		}
 	}

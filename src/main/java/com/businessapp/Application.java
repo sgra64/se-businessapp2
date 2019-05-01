@@ -33,8 +33,7 @@ public class Application implements ManagedComponentIntf {
 	private Lifecycle lifecycle;
 
 	private FXBuilder fxBuilder;
-	private RepositoryBuilder repository;
-
+	private RepositoryBuilder repositoryBuilder;
 
 	/**
 	 * Protected constructor (protected to allow Spring Boot instance creation).
@@ -47,7 +46,7 @@ public class Application implements ManagedComponentIntf {
 		this.joinBarrier_GuiThread = new CountDownLatch( 1 );
 		this.lifecycle = Lifecycle.zombie;
 		this.fxBuilder = null;
-		this.repository = null;
+		this.repositoryBuilder = null;
 	}
 
 
@@ -116,7 +115,7 @@ public class Application implements ManagedComponentIntf {
 			/*
 			 * build Application components.
 			 */
-			repository = RepositoryBuilder.getInstance();
+			repositoryBuilder = RepositoryBuilder.getInstance();
 			fxBuilder = FXBuilder.getInstance( args, joinBarrier_GuiThread );
 
 			lifecycle = Lifecycle.ready;
@@ -134,7 +133,7 @@ public class Application implements ManagedComponentIntf {
 			/*
 			 * start Application components.
 			 */
-			repository.start();
+			repositoryBuilder.start();
 
 			fxBuilder.start();
 
@@ -165,13 +164,13 @@ public class Application implements ManagedComponentIntf {
 				fxBuilder.stop();
 			}
 
-			if( repository != null ) {
-				repository.stop();
+			if( repositoryBuilder != null ) {
+				repositoryBuilder.stop();
 			}
 			//SpringApplication.exit( context, exitCodeGenerators );
 
 			lifecycle = Lifecycle.zombie;
-			log.info( getName() + " is now SHUTDOWN." );
+			log.info( getName() + " is now shut down." );
 			log.info( "------------------------" );
 		}
 	}

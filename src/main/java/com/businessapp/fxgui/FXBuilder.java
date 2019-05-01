@@ -35,7 +35,7 @@ import com.businessapp.repositories.RepositoryBuilder;
  * @author Sven Graupner
  *
  */
-@SuppressWarnings("restriction")
+
 public class FXBuilder extends Application implements ManagedComponentIntf {
 	private static final LoggerProvider log = LoggerProvider.getLogger( FXBuilder.class );
 	private static FXBuilder _singletonInstance = null;
@@ -43,11 +43,11 @@ public class FXBuilder extends Application implements ManagedComponentIntf {
 
 	private enum Idx { i_name /*0*/, i_label /*1*/, i_fxml /*2*/, i_rszTble /*3*/ };
 	private final static String _TabsDescr[][] = {
-		// i_name=0,				i_label=1,		i_fxml=2,			i_reszble=3
-		{ "App",					"App",			"App.fxml",			"0" },
-		{ CalculatorIntf.Calculator,"Calculator",	"Calculator.fxml",	"0" },
+		// i_name=0,					i_label=1,		i_fxml=2,			i_reszble=3
+		{ "App",						"App",			"App.fxml",			"0" },
+		{ CalculatorIntf.Calculator,	"Calculator",	"Calculator.fxml",	"0" },
 		{ RepositoryBuilder.Customer,	"Customers",	"TableView.fxml",	"1" },
-		{ RepositoryBuilder.Article,		"Artikel",		"TableView.fxml",	"0" },
+		{ RepositoryBuilder.Article,	"Artikel",		"TableView.fxml",	"0" },
 	};
 
 	private final Stage stage;
@@ -229,7 +229,7 @@ public class FXBuilder extends Application implements ManagedComponentIntf {
 							// 1. Cast fxmlController to TableViewFXMLController.
 							tvFxmlController = (TableViewFXMLController)fxmlController;
 							// 2. Fetch Customer data repository.
-							CustomerRepositoryIntf custRepo = RepositoryBuilder.getInstance().getCustomerRepository();
+							CustomerRepositoryIntf custRepo = (CustomerRepositoryIntf)RepositoryBuilder.getInstance().getCustomerRepository();
 							// 3. Configure FXMLController with "isResizable" feature (resizable column widths).
 							tvFxmlController.inject( "1".equals( descr[ Idx.i_rszTble.ordinal() ] ) );
 							// 4. Create TableView for Customer and inject FXMLController and Customer repository into TableView.
@@ -242,7 +242,7 @@ public class FXBuilder extends Application implements ManagedComponentIntf {
 
 						case RepositoryBuilder.Article:
 							tvFxmlController = (TableViewFXMLController)fxmlController;
-							ArticleRepositoryIntf articleRepo = RepositoryBuilder.getInstance().getArticleRepository();
+							ArticleRepositoryIntf articleRepo = (ArticleRepositoryIntf)RepositoryBuilder.getInstance().getArticleRepository();
 							tvFxmlController.inject( "1".equals( descr[ Idx.i_rszTble.ordinal() ] ) ); 	// isResizable feature
 							tv = TableViewable.createTableView_Article( tvFxmlController, articleRepo );
 							tvFxmlController.inject( tv );
