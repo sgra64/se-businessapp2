@@ -1,5 +1,7 @@
-.classpath
-.project
-.settings/**
-target
-resources
+/.classpath
+/.project
+/.settings
+/target
+/data
+/logs
+/untracked
