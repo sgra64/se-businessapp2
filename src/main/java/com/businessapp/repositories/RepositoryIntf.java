@@ -3,15 +3,23 @@ package com.businessapp.repositories;
 import java.util.List;
 
 import com.businessapp.logic.ManagedComponentIntf;
+import com.businessapp.persistence.PersistenceProviderIntf;
 
 
 /**
- * Public interface to access generic repository with CRUD methods (Create, Read, Update, Delete).
+ * Public interface to access a generic repository with CRUD methods (Create, Read, Update, Delete).
  * 
  * @author Sven Graupner
  *
  */
 public interface RepositoryIntf<E> extends ManagedComponentIntf {
+
+	/**
+	 * Injection of a persistence provider enables the repository to save its content
+	 * to a persistence media and restore from there.
+	 * @param persistenceProvider provider of PersistenceProviderIntf
+	 */
+	public void inject( PersistenceProviderIntf persistenceProvider );
 
 	/**
 	 * Create a new entity E that is *not* yet managed in the repository.

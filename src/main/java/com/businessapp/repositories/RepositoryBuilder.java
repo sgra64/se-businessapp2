@@ -1,14 +1,19 @@
 package com.businessapp.repositories;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
 import com.businessapp.logic.ManagedComponentIntf;
 import com.businessapp.model.Article;
 import com.businessapp.model.Customer;
+import com.businessapp.model.EntityIntf;
 import com.businessapp.model.Note;
 import com.businessapp.model.Customer.CustomerStatus;
+import com.businessapp.persistence.PersistenceProviderIntf;
+import com.businessapp.persistence.PersistenceProviderFactory;
+import com.businessapp.persistence.PersistenceProviderFactory.PersistenceSelector;
 
 
 /**
@@ -21,55 +26,48 @@ import com.businessapp.model.Customer.CustomerStatus;
 public class RepositoryBuilder implements ManagedComponentIntf {
 	private static RepositoryBuilder _singleton = getInstance();
 
+	public static final String DataPath	= "data/";
+
+	/*
+	 * List of repository names.
+	 */
 	public static final String Customer	= "Customer";
 	public static final String Article	= "Article";
 
 	/*
-	 * Repository configuration.
+	 * List of repository configurations.
 	 */
-	private final HashMap<String,RepositoryConfig> _repoMap;
-	private final RepositoryConfig[] _repoArray;
+	private final List<RepositoryConfiguration> repoConfigList;
 
-	@FunctionalInterface
-	static interface BuildFixtureFunctionalIntf {
-		void buildFixture( @SuppressWarnings("rawtypes") List list );
-	}
-
-	private class RepositoryConfig {
-		private final String name;
-		private final BuildFixtureFunctionalIntf buildFixture;
-		private RepositoryIntf<?> repository;
-
-		private RepositoryConfig( String name, BuildFixtureFunctionalIntf buildFixture ) {
-			this.name = name;
-			this.buildFixture = buildFixture;
-			this.repository = null;
-			_repoMap.put( name, this );
-		}
-
-		void inject( RepositoryIntf<?> repository ) {
-			this.repository = repository;
-		}
-	}
+	/*
+	 * Map of repository instances.
+	 */
+	private final HashMap<String,RepositoryIntf<?>> repoMap;
 
 
 	/**
-	 * Private constructor as part of singleton pattern.
+	 * Private constructor as part of singleton pattern that initializes
+	 * repository configurations and an empty repository map.
 	 */
 	private RepositoryBuilder() {
 
-		 _repoMap = new HashMap<String,RepositoryConfig>();
+		repoConfigList = Arrays.asList(
 
-		 _repoArray = new RepositoryConfig[] {
-			new RepositoryConfig(
+			new RepositoryConfiguration(
 				Customer,
+				PersistenceSelector.Default,
 				this::buildCustomerFixture
 			),
-			new RepositoryConfig(
+
+			new RepositoryConfiguration(
 				Article,
+				PersistenceSelector.Default,
 				this::buildArticleFixture
-			),
-		};
+			)
+		);
+
+		repoMap = new HashMap<String,RepositoryIntf<?>>();
+
 	}
 
 
@@ -86,62 +84,101 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	}
 
 
+	/**
+	 * Start RepositoryBuilder.
+	 * Creates all configured repository instances.
+	 */
 	@Override
 	public void start() {
 
-		for( RepositoryConfig repoConfig : _repoArray ) {
+		for( RepositoryConfiguration repoConfig : repoConfigList ) {
 
-			switch( repoConfig.name ) {
+			switch( repoConfig.getName() ) {
 
 			case Customer:
-				configure( repoConfig, new CustomerRepositoryImpl( new ArrayList<Customer>() ) );
+				configure( repoConfig, new CustomerRepositoryImpl( new ArrayList<Customer>() ), Customer.class );
 				break;
 
 			case Article:
-				configure( repoConfig, new ArticleRepositoryImpl( new ArrayList<Article>() ) );
+				configure( repoConfig, new ArticleRepositoryImpl( new ArrayList<Article>() ), Article.class );
 				break;
 			}
 		}
 	}
 
-	private void configure( RepositoryConfig repoConfig, RepositoryIntf<?> repository ) {
 
-		repoConfig.inject( repository );
+	/*
+	 * Private method that configures a new repository instance.
+	 */
+	@SuppressWarnings({"unchecked","rawtypes"})
+	private void configure( RepositoryConfiguration repoConfig, RepositoryIntf<?> repository, Class<? extends EntityIntf> clazz ) {
 
-		repoConfig.repository.findAll().clear();
+		repoMap.put( repoConfig.getName(), repository );
 
-		if( repoConfig.repository.findAll().size() <= 0 ) {
+		String path = DataPath + repoConfig.getName();
+		PersistenceProviderIntf provider = PersistenceProviderFactory.getInstance(
+			repoConfig.getSelector(),
+			path,
+			clazz
+		);
+		repository.findAll().clear();
 
-			repoConfig.buildFixture.buildFixture( repoConfig.repository.findAll() );
+		provider.readAll( e -> {
+			((RepositoryIntf)repository).update( e, true );
+		});
+
+		repository.inject( provider );
+
+		if( repository.findAll().size() <= 0 ) {
+
+			repoConfig.buildFixture( repository );
+
+			provider.updateAll( (List<? extends EntityIntf>)repository.findAll() );
 		}
 
-		repoConfig.repository.start();
+		repository.start();
 	}
 
 
+	/**
+	 * Stop RepositoryBuilder.
+	 * Stops all repository instances.
+	 */
 	@Override
 	public void stop() {
-		for( RepositoryConfig repoConfig : _repoArray ) {
-			if( repoConfig.repository != null ) {
-				repoConfig.repository.stop();
+		for( RepositoryConfiguration repoConfig : repoConfigList ) {
+			RepositoryIntf<?> repo = repoMap.get( repoConfig.getName() );
+			if( repo != null ) {
+				repo.stop();
 			}
 		}
 	}
 
+
+	/**
+	 * Getter for RepositoryBuilder name.
+	 * @return RepositoryBuilder name
+	 */
 	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}
 
 
-	@SuppressWarnings("unchecked")
-	public RepositoryIntf<Customer> getCustomerRepository() {
-		return (RepositoryIntf<Customer>)_repoMap.get( Customer ).repository;
+	/**
+	 * Getter for CustomerRepository.
+	 * @return CustomerRepository instance
+	 */
+	public CustomerRepositoryIntf getCustomerRepository() {
+		return (CustomerRepositoryIntf)repoMap.get( Customer );
 	}
 
-	@SuppressWarnings("unchecked")
-	public RepositoryIntf<Article> getArticleRepository() {
-		return (RepositoryIntf<Article>)_repoMap.get( Article ).repository;
+	/**
+	 * Getter for ArticleRepository.
+	 * @return ArticleRepository instance
+	 */
+	public ArticleRepositoryIntf getArticleRepository() {
+		return (ArticleRepositoryIntf)repoMap.get( Article );
 	}
 
 
@@ -182,6 +219,16 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 
 		c = new Customer( "Michael Brown" );
 		c.getContacts().add( "michael.brown@example.com" );
+		list.add( c );
+
+		c = new Customer( "Dr. Margarethe Böse" );
+		c.getContacts().add( "drmb@yahoo.de" );
+		c.getContacts().add( "030 826 5204" );
+		c.setStatus( CustomerStatus.SUSPENDED );
+		c.getNotes().add( new Note( "Zahlt Rechnung versp�tet." ) );
+		c.getNotes().add( new Note( "Beschwert sich �ber Mitarbeiter." ) );
+		c.getNotes().add( new Note( "Greift Angestellte verbal an." ) );
+		c.getNotes().add( new Note( "Wurde aus dem Gesch�ft verwiesen. Ein Zutrittsverbot wurde ausgesprochen." ) );
 		list.add( c );
 	}
 

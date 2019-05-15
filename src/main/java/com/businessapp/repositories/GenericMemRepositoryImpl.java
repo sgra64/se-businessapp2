@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.businessapp.logic.LoggerProvider;
 import com.businessapp.model.EntityIntf;
+import com.businessapp.persistence.PersistenceProviderIntf;
 
 
 /**
@@ -19,6 +20,7 @@ import com.businessapp.model.EntityIntf;
 abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements RepositoryIntf<E> {
 	private static final LoggerProvider log = LoggerProvider.getLogger( GenericMemRepositoryImpl.class );
 
+	private PersistenceProviderIntf persistenceProvider;
 	private final List<E> list;
 
 
@@ -27,9 +29,19 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 	 * @param list list<E> that is associated with the repository.
 	 */
 	GenericMemRepositoryImpl( List<E> list ) {
+		this.persistenceProvider = null;
 		this.list = list;
 	}
 
+	/**
+	 * Injection of a persistence provider enables the repository to save its content
+	 * to a persistence media and restore from there.
+	 * @param persistenceProvider provider of PersistenceProviderIntf
+	 */
+	@Override
+	public void inject( PersistenceProviderIntf persistenceProvider ) {
+		this.persistenceProvider = persistenceProvider;
+	}
 
 	/**
 	 * Basic lifecycle operations inherited from ManagedComponentIntf.
@@ -115,12 +127,24 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 				entity = e1;
 			} else {
 				log.info( "==> updated(" + entity.getId() + ")" );
+				final E entity2 = entity;
+				persist( ta -> {
+					ta.prepare( list );
+					ta.update( entity2 );
+					ta.commit();
+				});
 			}
 
 		} else {
 			if( insert ) {
 				log.info( "==> inserted(" + entity.getId() + ")" );
 				list.add( entity );
+				final E entity2 = entity;
+				persist( ta -> {
+					ta.prepare( list );
+					ta.create( entity2 );
+					ta.commit();
+				});
 			}
 		}
 		return entity;
@@ -145,13 +169,22 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 	 */
 	@Override
 	public void delete( List<String> ids ) {
+		persist( ta -> {
+			ta.prepare( this.list );
+		});
 		for( String id : ids ) {
 			E entity = findById( list, id );
 			if( entity != null ) {
 				list.remove( entity );
+				persist( ta -> {
+					ta.delete( entity );
+				});
 				log.info( "==> deleted(" + entity.getId() + ")" );
 			}
 		}
+		persist( ta -> {
+			ta.commit();
+		});
 	}
 
 
@@ -159,10 +192,48 @@ abstract class GenericMemRepositoryImpl<E extends EntityIntf> implements Reposit
 	 * Delete all entities from repository as one atomic transaction. The result
 	 * is an empty repository.
 	 */
+	
+	
 	@Override
 	public void deleteAll() {
-		list.clear();
+		persist( ta -> {
+			ta.prepare( this.list );
+			ta.deleteAll();
+			list.clear();
+			ta.commit();
+
+		}, () -> {
+			list.clear();
+		});
 		log.info( "==> cleared(" + this.getClass().getSimpleName() + ")" );
+	}
+
+
+	/*
+	 * Private methods.
+	 */
+
+	@FunctionalInterface
+	interface TransactionIntf {
+		void execute( PersistenceProviderIntf persistenceProvider );
+	}
+
+	@FunctionalInterface
+	interface SimpleIntf {
+		void execute();
+	}
+
+	private void persist( TransactionIntf tai ) {
+		persist( tai, null );
+	}
+	private void persist( TransactionIntf tai, SimpleIntf si ) {
+		if( persistenceProvider != null ) {
+			tai.execute( persistenceProvider );
+		} else {
+			if( si != null ) {
+				si.execute();
+			}
+		}
 	}
 
 }
