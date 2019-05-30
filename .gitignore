@@ -1,7 +1,8 @@
-/.classpath
-/.project
-/.settings
-/target
-/data
-/logs
-/untracked
+.classpath
+.project
+.settings
+target
+data
+logs
+untracked
+src/main/java/com/businessapp/Snippets.java

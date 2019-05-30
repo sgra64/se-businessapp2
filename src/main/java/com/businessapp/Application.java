@@ -17,7 +17,7 @@ import com.businessapp.repositories.RepositoryBuilder;
  * Main Application class that is started as Spring Boot Application.
  * Class implements a structured lifecycle for building, starting up,
  * running and shutting down application components.
- * 
+ *
  * @author Sven Graupner
  *
  */
@@ -50,6 +50,18 @@ public class Application implements ManagedComponentIntf {
 	}
 
 
+	/**
+	 * Entry point after Spring Boot has initialized the application instance.
+	 */
+	@EventListener(ApplicationReadyEvent.class)
+	public void doSomethingAfterStartup() {
+		System.out.println( "3. Hello SpringApplication, doSomethingAfterStartup() called." );
+	}
+
+	/**
+	 * Java/JVM entry point with static main() function. Called first.
+	 * @param args
+	 */
 	public static void main( String[] args ) {
 		/*
 		 * Starting Spring Boot, which also creates the singleton Application instance.
