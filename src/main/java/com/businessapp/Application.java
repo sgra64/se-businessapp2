@@ -2,9 +2,12 @@ package com.businessapp;
 
 import java.util.concurrent.CountDownLatch;
 
-import org.springframework.boot.SpringApplication;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.EventListener;
 
 import com.businessapp.fxgui.FXBuilder;
@@ -24,6 +27,13 @@ import com.businessapp.repositories.RepositoryBuilder;
 
 @SpringBootApplication
 public class Application implements ManagedComponentIntf {
+
+	@Autowired
+	private ConfigurableApplicationContext applicationContext;
+
+	@Autowired
+	private RepositoryBuilder repositoryBuilder;
+
 	private static Application _singleton = null;
 	private final String[] args;
 	private final LoggerProvider log;
@@ -33,7 +43,7 @@ public class Application implements ManagedComponentIntf {
 	private Lifecycle lifecycle;
 
 	private FXBuilder fxBuilder;
-	private RepositoryBuilder repositoryBuilder;
+
 
 	/**
 	 * Protected constructor (protected to allow Spring Boot instance creation).
@@ -55,35 +65,37 @@ public class Application implements ManagedComponentIntf {
 		 * Starting Spring Boot, which also creates the singleton Application instance.
 		 * If started through Spring Boot, singleton instance will receive an
 		 * ApplicationReadyEvent caught by the Application lifecycle() method.
+		 * 
+		 * Need to run servlet container (tomcat) for the h2 console that also needs to
+		 * be shut down properly to not have servlet threads sticking around preventing
+		 * clean exit.
 		 */
-		SpringApplication.run( Application.class, args );
+		@SuppressWarnings("unused")
+		ConfigurableApplicationContext applicationContext =
+			new SpringApplicationBuilder( Application.class )
+				.web( WebApplicationType.SERVLET ).run();
+
+		//for( String name : applicationContext.getBeanDefinitionNames() ) {
+		//	System.err.println( name );
+		//}
 
 		/*
 		 * If Spring Boot has not been initialized, Application singleton instance
 		 * needs to be created and Application lifecycle() method invoked.
-		 */
+		 * /
 		if( _singleton == null ) {
 			_singleton = new Application( args );
 			_singleton.lifecycle();
 		}
+		*/
 
-	}
+		_singleton.build();
 
-	/**
-	 * Private method that performs the application lifecycle. Method is called either
-	 * by Spring Boot initialization indirectly by receiving the ApplicationReadyEvent
-	 * or it is called explicitly in main();
-	 */
-	@EventListener( ApplicationReadyEvent.class )
-	private void lifecycle() {
+		_singleton.start();
 
-		build();
-
-		start();
-
-		if( lifecycle == Lifecycle.running ) {
-			log.info( getName() + " is now RUNNING." );
-			log.info( "------------------------" );
+		if( _singleton.lifecycle == Lifecycle.running ) {
+			_singleton.log.info( _singleton.getName() + " is now RUNNING." );
+			_singleton.log.info( "------------------------" );
 			/*
 			 * JavaFX spawns own threads for keeping the Gui responsive. This means
 			 * that the Application thread performing the Application lifecycle
@@ -98,12 +110,23 @@ public class Application implements ManagedComponentIntf {
 				 * Block the invoking thread until another thread (from FXGui in this case)
 				 * has finished.
 				 */
-				joinBarrier_GuiThread.await();
+				_singleton.joinBarrier_GuiThread.await();
 
 			} catch (InterruptedException e) {}
 		}
 
-		stop();
+		_singleton.stop();
+	}
+
+
+	/**
+	 * Private method that performs the application lifecycle. Method is called either
+	 * by Spring Boot initialization indirectly by receiving the ApplicationReadyEvent
+	 * or it is called explicitly in main();
+	 */
+	@EventListener( ApplicationReadyEvent.class )
+	private void lifecycle() {
+
 	}
 
 
@@ -115,7 +138,7 @@ public class Application implements ManagedComponentIntf {
 			/*
 			 * build Application components.
 			 */
-			repositoryBuilder = RepositoryBuilder.getInstance();
+			//repositoryBuilder = RepositoryBuilder.getInstance();
 			fxBuilder = FXBuilder.getInstance( args, joinBarrier_GuiThread );
 
 			lifecycle = Lifecycle.ready;
@@ -167,7 +190,13 @@ public class Application implements ManagedComponentIntf {
 			if( repositoryBuilder != null ) {
 				repositoryBuilder.stop();
 			}
-			//SpringApplication.exit( context, exitCodeGenerators );
+
+			/*
+			 * Close all Spring containers, including servlet beans that
+			 * otherwise stick around.
+			 * Source: https://www.baeldung.com/spring-boot-shutdown
+			 */
+			applicationContext.close();
 
 			lifecycle = Lifecycle.zombie;
 			log.info( getName() + " is now shut down." );

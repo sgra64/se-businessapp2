@@ -1,19 +1,16 @@
 package com.businessapp.repositories;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import com.businessapp.logic.ManagedComponentIntf;
 import com.businessapp.model.Article;
 import com.businessapp.model.Customer;
-import com.businessapp.model.EntityIntf;
 import com.businessapp.model.Note;
 import com.businessapp.model.Customer.CustomerStatus;
-import com.businessapp.persistence.PersistenceProviderIntf;
-import com.businessapp.persistence.PersistenceProviderFactory;
-import com.businessapp.persistence.PersistenceProviderFactory.PersistenceSelector;
 
 
 /**
@@ -23,8 +20,9 @@ import com.businessapp.persistence.PersistenceProviderFactory.PersistenceSelecto
  * @author Sven Graupner
  *
  */
+@Component
 public class RepositoryBuilder implements ManagedComponentIntf {
-	private static RepositoryBuilder _singleton = getInstance();
+	private static RepositoryBuilder repositoryBuilder = null;
 
 	public static final String DataPath	= "data/";
 
@@ -34,55 +32,21 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	public static final String Customer	= "Customer";
 	public static final String Article	= "Article";
 
-	/*
-	 * List of repository configurations.
-	 */
-	private final List<RepositoryConfiguration> repoConfigList;
+	@Autowired
+	private CustomerRepositoryIntf customerRepository;
 
-	/*
-	 * Map of repository instances.
-	 */
-	private final HashMap<String,RepositoryIntf<?>> repoMap;
+	@Autowired
+	private ArticleRepositoryIntf articleRepository;
 
 
-	/**
-	 * Private constructor as part of singleton pattern that initializes
-	 * repository configurations and an empty repository map.
-	 */
 	private RepositoryBuilder() {
-
-		repoConfigList = Arrays.asList(
-
-			new RepositoryConfiguration(
-				Customer,
-				PersistenceSelector.JSONSerialization,
-				this::buildCustomerFixture
-			),
-
-			new RepositoryConfiguration(
-				Article,
-				PersistenceSelector.JSONSerialization,
-				this::buildArticleFixture
-			)
-		);
-
-		repoMap = new HashMap<String,RepositoryIntf<?>>();
-
+		repositoryBuilder = this;
 	}
 
 
-	/**
-	 * Public access method according to the Singleton pattern.
-	 * 
-	 * @return reference to ModelBuilder singleton instance.
-	 */
 	public static RepositoryBuilder getInstance() {
-		if( _singleton == null ) {
-			_singleton = new RepositoryBuilder();
-		}
-		return _singleton;
+		return repositoryBuilder;
 	}
-
 
 	/**
 	 * Start RepositoryBuilder.
@@ -90,53 +54,22 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 */
 	@Override
 	public void start() {
-
-		for( RepositoryConfiguration repoConfig : repoConfigList ) {
-
-			switch( repoConfig.getName() ) {
-
-			case Customer:
-				configure( repoConfig, new CustomerRepositoryImpl( new ArrayList<Customer>() ), Customer.class );
-				break;
-
-			case Article:
-				configure( repoConfig, new ArticleRepositoryImpl( new ArrayList<Article>() ), Article.class );
-				break;
+		/*
+		 * Load repository with fixture objects of repository is found empty.
+		 */
+		long size = customerRepository.count();
+		if( size <= 0 ) {
+			for( Customer entity : buildCustomerFixture( new ArrayList<Customer>() ) ) {
+				customerRepository.save( entity );
 			}
 		}
-	}
 
-
-	/*
-	 * Private method that configures a new repository instance.
-	 */
-	@SuppressWarnings({"unchecked","rawtypes"})
-	private void configure( RepositoryConfiguration repoConfig, RepositoryIntf<?> repository, Class<? extends EntityIntf> clazz ) {
-
-		repoMap.put( repoConfig.getName(), repository );
-
-		String path = DataPath + repoConfig.getName();
-		PersistenceProviderIntf provider = PersistenceProviderFactory.getInstance(
-			repoConfig.getSelector(),
-			path,
-			clazz
-		);
-		repository.findAll().clear();
-
-		provider.readAll( e -> {
-			((RepositoryIntf)repository).update( e, true );
-		});
-
-		repository.inject( provider );
-
-		if( repository.findAll().size() <= 0 ) {
-
-			repoConfig.buildFixture( repository );
-
-			provider.updateAll( (List<? extends EntityIntf>)repository.findAll() );
+		size = articleRepository.count();
+		if( size <= 0 ) {
+			for( Article entity : buildArticleFixture( new ArrayList<Article>() ) ) {
+				articleRepository.save( entity );
+			}
 		}
-
-		repository.start();
 	}
 
 
@@ -146,12 +79,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 */
 	@Override
 	public void stop() {
-		for( RepositoryConfiguration repoConfig : repoConfigList ) {
-			RepositoryIntf<?> repo = repoMap.get( repoConfig.getName() );
-			if( repo != null ) {
-				repo.stop();
-			}
-		}
+
 	}
 
 
@@ -170,7 +98,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 * @return CustomerRepository instance
 	 */
 	public CustomerRepositoryIntf getCustomerRepository() {
-		return (CustomerRepositoryIntf)repoMap.get( Customer );
+		return customerRepository;
 	}
 
 	/**
@@ -178,7 +106,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 * @return ArticleRepository instance
 	 */
 	public ArticleRepositoryIntf getArticleRepository() {
-		return (ArticleRepositoryIntf)repoMap.get( Article );
+		return articleRepository;
 	}
 
 
@@ -190,7 +118,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 * Method to create a set of Customer entities.
 	 * @param list container into which entities are inserted.
 	 */
-	private void buildCustomerFixture( List<Customer> list ) {
+	private List<Customer> buildCustomerFixture( List<Customer> list ) {
 		Customer c = new Customer( "Jens Baumann" );
 		c.getContacts().add( "eme@yahoo.com" );
 		c.getContacts().add( "meyer244@gmail.com" );
@@ -230,6 +158,8 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 		c.getNotes().add( new Note( "Greift Angestellte verbal an." ) );
 		c.getNotes().add( new Note( "Wurde aus dem Gesch�ft verwiesen. Ein Zutrittsverbot wurde ausgesprochen." ) );
 		list.add( c );
+
+		return list;
 	}
 
 
@@ -237,7 +167,7 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	 * Method to create a set of Article entities.
 	 * @param list container into which entities are inserted.
 	 */
-	private void buildArticleFixture( List<Article> list ) {
+	private List<Article> buildArticleFixture( List<Article> list ) {
 		list.add( new Article( "Canon Objektiv EF 50mm f/1.2L USM", "1.549,00 EUR" ) );
 		list.add( new Article( "Canon Objektiv EF 50mm f/1.4 USM", "449,00 EUR" ) );
 		
@@ -284,6 +214,8 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 		list.add( new Article( "Canon Objektiv EF 70-200mm f/4L USM", "689,00 EUR" ) );
 		list.add( new Article( "Canon Objektiv EF 70-200mm f/2.8L USM", "1.579,00 EUR" ) );
 		list.add( new Article( "Canon Objektiv EF 200-400mm f/4L IS USM + Extender 1.4x", "11.699,00 EUR" ) );
+
+		return list;
 	}
 
 }

@@ -1,5 +1,11 @@
 package com.businessapp.model;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+
 import com.businessapp.logic.IDGenerator;
 
 
@@ -9,16 +15,23 @@ import com.businessapp.logic.IDGenerator;
  * @author Sven Graupner
  * 
  */
+
+@Entity
+@Table(name = "Article")
 public class Article implements EntityIntf {
 	private static final long serialVersionUID = 1L;
 
 	/*
 	 * Properties.
 	 */
+	@Id
+	@Column(name ="id")
 	private final String id;	// Unique, non-null Article id.
 
+	@Column(name ="name")
 	private String name;		// Article name.
 
+	@Transient
 	private String price;		// Article price.
 
 	/**

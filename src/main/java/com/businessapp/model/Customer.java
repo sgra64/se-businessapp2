@@ -3,6 +3,12 @@ package com.businessapp.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+import javax.persistence.Transient;
+
 import com.businessapp.logic.IDGenerator;
 import com.businessapp.model.customserializer.CustomerJSONDeserializer;
 import com.businessapp.model.customserializer.CustomerJSONSerializer;
@@ -21,25 +27,33 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 @JsonSerialize(using = CustomerJSONSerializer.class)
 @JsonDeserialize(using = CustomerJSONDeserializer.class)
 
+@Entity
+@Table(name = "Customer")
 public class Customer implements EntityIntf {
 	private static final long serialVersionUID = 1L;
 
 	/*
 	 * Properties.
 	 */
+	@Id
+	@Column(name ="id")
 	private final String id;	// Unique, non-null Customer id.
 
+	@Column(name ="name")
 	private String name;		// Customer name.
 
 	// List of contacts such as Customer email, phone, etc.
+	@Transient
 	private final List<String> contacts = new ArrayList<String>();
 
 	// List of (String) notes attached to a Customer.
+	@Transient
 	private final List<Note> notes = new ArrayList<Note>();
 
 	// Customer status.
 	public enum CustomerStatus { ACTIVE, SUSPENDED, TERMINATED };
 	//
+	@Transient
 	private CustomerStatus status;
 
 
