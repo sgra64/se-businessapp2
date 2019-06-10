@@ -4,16 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.Column;
+import javax.persistence.Convert;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.businessapp.logic.IDGenerator;
-import com.businessapp.model.customserializer.CustomerJSONDeserializer;
-import com.businessapp.model.customserializer.CustomerJSONSerializer;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 
 /**
@@ -23,9 +20,6 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  * @author Sven Graupner
  * 
  */
-
-@JsonSerialize(using = CustomerJSONSerializer.class)
-@JsonDeserialize(using = CustomerJSONDeserializer.class)
 
 @Entity
 @Table(name = "Customer")
@@ -42,18 +36,16 @@ public class Customer implements EntityIntf {
 	@Column(name ="name")
 	private String name;		// Customer name.
 
-	// List of contacts such as Customer email, phone, etc.
-	@Transient
+	@Column(name="contacts")
+	@Convert(converter = StringListConverter.class)		// map List<String> to single, ';'-separated String
 	private final List<String> contacts = new ArrayList<String>();
 
-	// List of (String) notes attached to a Customer.
 	@Transient
 	private final List<Note> notes = new ArrayList<Note>();
 
-	// Customer status.
-	public enum CustomerStatus { ACTIVE, SUSPENDED, TERMINATED };
-	//
-	@Transient
+    public enum CustomerStatus { ACTIVE, SUSPENDED, TERMINATED };
+
+	@Column(name="status")
 	private CustomerStatus status;
 
 
@@ -80,8 +72,8 @@ public class Customer implements EntityIntf {
 	//
 	public Customer( String id, String name ) {
 		this.id = id==null? IDG.nextId() : id;
-		this.name = name;
-		this.notes.add( new Note( "Customer record created." ) );
+		setName( name );
+		this.addNote( new Note( this, "Customer record created." ) );
 		this.status = CustomerStatus.ACTIVE;
 	}
 
@@ -111,7 +103,25 @@ public class Customer implements EntityIntf {
 	 * @param name Customer name.
 	 */
 	public void setName( String name ) {
-		this.name = name;
+		this.name = "";
+		if( name != null && name.length() > 0 ) {
+			if( name.contains( "," ) ) {
+				this.name = name;
+
+			} else {
+				// reverse name order to show last name first
+				StringBuffer sb = new StringBuffer();
+				String[] sp = name.split( "[ \t]" );
+				int parts = sp.length;
+				if( parts > 0 ) {
+					sb.append( sp[ --parts ] );
+					for( int i = 0; i < parts; i++ ) {
+						sb.append( i==0? ", " : " " ).append( sp[i] );
+					}
+				}
+				this.name = sb.toString();
+			}
+		}
 	}
 
 	/**
@@ -128,6 +138,14 @@ public class Customer implements EntityIntf {
 	 */
 	public List<Note> getNotes() {
 		return notes;
+	}
+
+	/**
+	 * Add new note entry.
+	 * @param note new Note entry
+	 */
+	public void addNote( Note note ) {
+		notes.add( note );
 	}
 
 	/**

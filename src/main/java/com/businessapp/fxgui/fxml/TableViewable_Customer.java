@@ -151,7 +151,7 @@ class TableViewable_Customer extends TableViewable {
 					break;
 
 				case notes:
-					entity.getNotes().add( new Note( val ) );
+					entity.addNote( new Note( entity, val ) );
 					break;
 
 				case contact:
@@ -319,10 +319,10 @@ class TableViewable_Customer extends TableViewable {
 										popupNotes.setOnCloseRequest( evt3 -> {
 											btn.setText( "notes: " + customer.entity.getNotes().size() );
 											if( popupNotes.isAltered() ) {
-												//List<Note> n2L = customer.entity.getNotes();
-												//for( Note n2 : n2L ) {
-												//	System.out.println( "--> " + n2.getNoteText() );
-												//}
+												List<Note> n2L = customer.entity.getNotes();
+												for( Note n2 : n2L ) {
+													n2.setCustomer( customer.entity );
+												}
 												repository.update( customer.entity, false );
 											}
 											popupNotes.close();

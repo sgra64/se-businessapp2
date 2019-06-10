@@ -39,14 +39,24 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 	private ArticleRepositoryIntf articleRepository;
 
 
+	/**
+	 * Private constructor as part of singleton pattern that initializes
+	 * repository configurations and an empty repository map.
+	 */
 	private RepositoryBuilder() {
 		repositoryBuilder = this;
 	}
 
 
+	/**
+	 * Public access method according to the Singleton pattern.
+	 * 
+	 * @return reference to ModelBuilder singleton instance.
+	 */
 	public static RepositoryBuilder getInstance() {
 		return repositoryBuilder;
 	}
+
 
 	/**
 	 * Start RepositoryBuilder.
@@ -153,10 +163,10 @@ public class RepositoryBuilder implements ManagedComponentIntf {
 		c.getContacts().add( "drmb@yahoo.de" );
 		c.getContacts().add( "030 826 5204" );
 		c.setStatus( CustomerStatus.SUSPENDED );
-		c.getNotes().add( new Note( "Zahlt Rechnung versp�tet." ) );
-		c.getNotes().add( new Note( "Beschwert sich �ber Mitarbeiter." ) );
-		c.getNotes().add( new Note( "Greift Angestellte verbal an." ) );
-		c.getNotes().add( new Note( "Wurde aus dem Gesch�ft verwiesen. Ein Zutrittsverbot wurde ausgesprochen." ) );
+		c.addNote( new Note( c, "Zahlt Rechnung verspaetet." ) );
+		c.addNote( new Note( c, "Beschwert sich ueber Mitarbeiter." ) );
+		c.addNote( new Note( c, "Greift Angestellte verbal an." ) );
+		c.addNote( new Note( c, "Wurde aus dem Geschaeft verwiesen. Ein Zutrittsverbot wurde ausgesprochen." ) );
 		list.add( c );
 
 		return list;

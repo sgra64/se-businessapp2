@@ -1,10 +1,14 @@
 package com.businessapp.model;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.Locale;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 
 import com.businessapp.logic.IDGenerator;
 
@@ -21,6 +25,13 @@ import com.businessapp.logic.IDGenerator;
 public class Article implements EntityIntf {
 	private static final long serialVersionUID = 1L;
 
+	private static final Locale locale  = new Locale( "de" );
+	private static final DecimalFormat decimalFormat = (DecimalFormat) NumberFormat.getNumberInstance( locale );
+
+	static {
+		decimalFormat.applyPattern( "#,###.00" );
+	}
+
 	/*
 	 * Properties.
 	 */
@@ -31,8 +42,8 @@ public class Article implements EntityIntf {
 	@Column(name ="name")
 	private String name;		// Article name.
 
-	@Transient
-	private String price;		// Article price.
+	@Column(name ="price")
+	private long price;			// Article price [cent].
 
 	/**
 	 * Private default constructor (required by JSON deserialization).
@@ -90,20 +101,36 @@ public class Article implements EntityIntf {
 		this.name = name;
 	}
 
+
 	/**
 	 * Return Article price.
 	 * @return Article price.
 	 */
 	public String getPrice() {
-		return price;
+		String numberAsString = decimalFormat.format( (double)this.price / 100.0 );
+		return numberAsString + " EUR";
 	}
 
 	/**
 	 * Set Article price.
 	 * @param name Article price.
 	 */
-	public void setPrice( String price ) {
-		this.price = price;
+	public void setPrice( String priceAsStr ) {
+		this.price = 0;
+		if( priceAsStr != null ) {
+			// split numbers, e.g. "1.899,00" from other Strings such as "EUR"
+			for( String sp : priceAsStr.split( "[^0-9,.]" ) ) {
+				if( sp.length() > 0 ) {
+					try {
+						double dbl = decimalFormat.parse( sp ).doubleValue() * 100.0;
+						this.price = (long)dbl;
+						return;
+
+					} catch( ParseException ex2 ) {
+					}
+				}
+			}
+		}
 	}
 
 }

@@ -42,16 +42,18 @@ public class Note implements Serializable {
 	/*
 	 * Properties.
 	 */
-	private Date timeStamp = null;			// timeStamp part of Note.
+	private Date timeStamp = null;			// TimeStamp part of Note.
 
-	private String noteText = null;			// text part of Note.
+	private String noteText = null;			// Text part of Note.
 
+	@SuppressWarnings("unused")
+	private Customer customer = null;		// Customer to whom Note belongs.
 
 	/**
 	 * Public default constructor (required by JSON deserialization).
 	 */
 	public Note() {
-		this( DefaultEntry );
+		this( null, DefaultEntry );
 	}
 
 	/**
@@ -59,7 +61,7 @@ public class Note implements Serializable {
 	 * Example noteStr: "2018-04-02 10:16:24:868, This is a text entry."
 	 * @param noteStr
 	 */
-	public Note( String noteStr ) {
+	public Note( Customer customer, String noteStr ) {
 		Object[] parts = parselogStr( noteStr );
 		this.timeStamp = parts[0]==null? null : (Date)parts[0];
 		this.noteText = (String)parts[1];
@@ -98,11 +100,11 @@ public class Note implements Serializable {
 	}
 
 	/**
-	 * Externalize Note as String. Example: "2018-03-15 20:10:27.730, Customer 1234 created".
-	 * @return Note as externalized String.
+	 * Set Customer to whom Note belongs.
+	 * @param customer Customer object.
 	 */
-	public String externalize() {
-		return df.format( timeStamp ) + FieldSeparator + noteText;
+	public void setCustomer( Customer customer ) {
+		this.customer = customer;
 	}
 
 

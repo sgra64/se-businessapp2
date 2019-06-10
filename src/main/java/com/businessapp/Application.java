@@ -1,6 +1,10 @@
 package com.businessapp;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.WebApplicationType;
@@ -13,6 +17,7 @@ import org.springframework.context.event.EventListener;
 import com.businessapp.fxgui.FXBuilder;
 import com.businessapp.logic.LoggerProvider;
 import com.businessapp.logic.ManagedComponentIntf;
+import com.businessapp.model.Customer;
 import com.businessapp.repositories.RepositoryBuilder;
 
 
@@ -27,13 +32,6 @@ import com.businessapp.repositories.RepositoryBuilder;
 
 @SpringBootApplication
 public class Application implements ManagedComponentIntf {
-
-	@Autowired
-	private ConfigurableApplicationContext applicationContext;
-
-	@Autowired
-	private RepositoryBuilder repositoryBuilder;
-
 	private static Application _singleton = null;
 	private final String[] args;
 	private final LoggerProvider log;
@@ -44,6 +42,14 @@ public class Application implements ManagedComponentIntf {
 
 	private FXBuilder fxBuilder;
 
+	@Autowired
+	private ConfigurableApplicationContext applicationContext;
+
+	@Autowired
+	private RepositoryBuilder repositoryBuilder;
+
+	@Autowired
+	private EntityManagerFactory entityManagerFactory;
 
 	/**
 	 * Protected constructor (protected to allow Spring Boot instance creation).
@@ -60,7 +66,7 @@ public class Application implements ManagedComponentIntf {
 	}
 
 
-	public static void main( String[] args ) {
+	public static void main( String...args ) {
 		/*
 		 * Starting Spring Boot, which also creates the singleton Application instance.
 		 * If started through Spring Boot, singleton instance will receive an
@@ -75,19 +81,26 @@ public class Application implements ManagedComponentIntf {
 			new SpringApplicationBuilder( Application.class )
 				.web( WebApplicationType.SERVLET ).run();
 
+		EntityManager em = _singleton.entityManagerFactory.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Customer> customerRS = em.createQuery(
+				//"Select c from Customer c where name = :match"
+				"Select c from Customer c"
+				// Select name that end with $1, https://www.w3schools.com/sql/sql_like.asp
+				// "Select c from Customer c where c.name like '%" + "er" + "'"
+			)
+			//.setParameter( "match", "Anne Meyer" )
+			.getResultList();
+
+		System.out.println( "---------------------------------" );
+		for( Customer customer : customerRS ) {
+			System.out.println( customer.getId() + ", " + customer.getName() );
+		}
+		System.out.println( "---------------------------------" );
+
 		//for( String name : applicationContext.getBeanDefinitionNames() ) {
 		//	System.err.println( name );
 		//}
-
-		/*
-		 * If Spring Boot has not been initialized, Application singleton instance
-		 * needs to be created and Application lifecycle() method invoked.
-		 * /
-		if( _singleton == null ) {
-			_singleton = new Application( args );
-			_singleton.lifecycle();
-		}
-		*/
 
 		_singleton.build();
 
@@ -118,7 +131,6 @@ public class Application implements ManagedComponentIntf {
 		_singleton.stop();
 	}
 
-
 	/**
 	 * Private method that performs the application lifecycle. Method is called either
 	 * by Spring Boot initialization indirectly by receiving the ApplicationReadyEvent
@@ -138,6 +150,7 @@ public class Application implements ManagedComponentIntf {
 			/*
 			 * build Application components.
 			 */
+			// obtain reference through @Autowire
 			//repositoryBuilder = RepositoryBuilder.getInstance();
 			fxBuilder = FXBuilder.getInstance( args, joinBarrier_GuiThread );
 
