@@ -6,6 +6,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import javax.persistence.Transient;
+
 
 /**
  * Class Note represents a short text line to store hints or comments
@@ -46,6 +48,7 @@ public class Note implements Serializable {
 
 	private String noteText = null;			// Text part of Note.
 
+	@Transient
 	@SuppressWarnings("unused")
 	private Customer customer = null;		// Customer to whom Note belongs.
 
