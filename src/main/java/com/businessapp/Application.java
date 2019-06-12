@@ -18,6 +18,8 @@ import com.businessapp.fxgui.FXBuilder;
 import com.businessapp.logic.LoggerProvider;
 import com.businessapp.logic.ManagedComponentIntf;
 import com.businessapp.model.Customer;
+import com.businessapp.repositories.ArticleRepositoryIntf;
+import com.businessapp.repositories.CustomerRepositoryIntf;
 import com.businessapp.repositories.RepositoryBuilder;
 
 
@@ -51,6 +53,12 @@ public class Application implements ManagedComponentIntf {
 	@Autowired
 	private EntityManagerFactory entityManagerFactory;
 
+	@Autowired
+	CustomerRepositoryIntf customerRepository;
+
+	@Autowired
+	ArticleRepositoryIntf articleRepository;
+
 	/**
 	 * Protected constructor (protected to allow Spring Boot instance creation).
 	 * @param args args[] passed from main()
@@ -80,23 +88,6 @@ public class Application implements ManagedComponentIntf {
 		ConfigurableApplicationContext applicationContext =
 			new SpringApplicationBuilder( Application.class )
 				.web( WebApplicationType.SERVLET ).run();
-
-		EntityManager em = _singleton.entityManagerFactory.createEntityManager();
-		@SuppressWarnings("unchecked")
-		List<Customer> customerRS = em.createQuery(
-				//"Select c from Customer c where name = :match"
-				"Select c from Customer c"
-				// Select name that end with $1, https://www.w3schools.com/sql/sql_like.asp
-				// "Select c from Customer c where c.name like '%" + "er" + "'"
-			)
-			//.setParameter( "match", "Anne Meyer" )
-			.getResultList();
-
-		System.out.println( "---------------------------------" );
-		for( Customer customer : customerRS ) {
-			System.out.println( customer.getId() + ", " + customer.getName() );
-		}
-		System.out.println( "---------------------------------" );
 
 		//for( String name : applicationContext.getBeanDefinitionNames() ) {
 		//	System.err.println( name );
@@ -139,6 +130,39 @@ public class Application implements ManagedComponentIntf {
 	@EventListener( ApplicationReadyEvent.class )
 	private void lifecycle() {
 
+		System.out.println( "\n-- Example for JPQL Query -------------------------------" );
+		String jpql =
+				//"Select c from Customer c where name = :match";
+				"Select c from Customer c";
+				//Select name that end with $1, https://www.w3schools.com/sql/sql_like.asp
+				//"Select c from Customer c where c.name like '%" + "er" + "'";
+		System.out.println( jpql + "\n" );
+		/*
+		 * Example for JPQL Query.
+		 */
+		EntityManager em = entityManagerFactory.createEntityManager();
+		@SuppressWarnings("unchecked")
+		List<Customer> customerRS = em.createQuery( jpql )
+			//.setParameter( "match", "Anne Meyer" )
+			.getResultList();
+
+		System.out.println( "==> " );
+		for( Customer customer : customerRS ) {
+			System.out.println( customer.getId() + ", " + customer.getName() );
+		}
+
+		System.out.println( "\n-- Example for Spring JPA Repository Query --------------" );
+		System.out.println( "customerRepository.findAll();\n" );
+
+		/*
+		 * Example for customerRepository.findAll() Query.
+		 */
+		long count = customerRepository.count();
+		System.out.println( "Customer records found: " + count );
+		for( Customer customer : customerRepository.findAll() ) {
+			System.out.println( " --> " + customer.getId() + ",\t" + customer.getName() + ",\t" + customer.getStatus().toString() );
+		}
+		System.out.println( "---------------------------------------------------------" );
 	}
 
 
