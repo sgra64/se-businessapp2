@@ -49,7 +49,6 @@ public class Note implements Serializable {
 	private String noteText = null;			// Text part of Note.
 
 	@Transient
-	@SuppressWarnings("unused")
 	private Customer customer = null;		// Customer to whom Note belongs.
 
 	/**
@@ -65,6 +64,7 @@ public class Note implements Serializable {
 	 * @param noteStr
 	 */
 	public Note( Customer customer, String noteStr ) {
+		this.customer = customer;
 		Object[] parts = parselogStr( noteStr );
 		this.timeStamp = parts[0]==null? null : (Date)parts[0];
 		this.noteText = (String)parts[1];
